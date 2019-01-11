@@ -30,7 +30,7 @@ class Access {
 		return $hash;
 	}
 
-	protected function build_params($src, $dst, $action, $amount, $subject) {
+	protected function build_params($src, $dst, $action, $amount, $subject, $own_id) {
 
 	        $hash = $this->gen_hash($this->otp, $src, $dst, $this->api_key, $action, $amount);
 
@@ -66,7 +66,7 @@ class Access {
 	}
 
 	public function info() {
-		return $this->request($this->user, 0, "info", 0, "");
+		return $this->request($this->user, 0, "info", 0, "", "");
 	}
 
 	public function send($amount, $subject, $own_id=False) {
@@ -100,7 +100,7 @@ class Access {
 	}
 
 	public function get_blocked_user($username) {
-		$str = "blocks/" + $username + "/";
+		$str = "blocks/" . $username . "/";
 		return 	$this->server_request($this->server, $str, "");
 	}
 
