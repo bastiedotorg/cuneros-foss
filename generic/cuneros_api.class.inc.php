@@ -1,9 +1,9 @@
 <?php
 
 /**
-	Cuneros API Class for PHP scripts
-	(C) 2019 by bastie dot space
-*/
+ *	Cuneros API Class for PHP scripts
+ *	(C) 2019 by bastie dot space
+ */
 
 class Access {
     public $otp = false;
@@ -38,7 +38,7 @@ class Access {
 	            'hash' => $hash,
 	            'src' => $src,
 	            'dst' => $dst,
-	            'api_key' => $this->api_key,
+//	            'api_key' => $this->api_key, // api key is no longer mandatory, as it is included in the hash.
         	    'action' => $action,
         	    'amount' => $amount,
         	    'subject' => $subject,
