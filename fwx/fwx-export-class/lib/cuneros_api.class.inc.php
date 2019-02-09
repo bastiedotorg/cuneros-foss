@@ -1,109 +1,292 @@
 <?php
-
 /**
-	Cuneros API Class for PHP scripts
-	(C) 2019 by bastie dot space
-*/
-
+ * cuneros_api.class.inc.php
+ *
+ * Cuneros API Connection class
+ *
+ * @category   API Connection
+ * @package    Cuneros.Api
+ * @author     Bastian Lüttig / bastie dot space
+ * @copyright  2019 Cuneros.de
+ * @license    http://www.gnu.org/licenses/gpl.html GPLv3
+ * @version    1.1
+ * @link       https://www.cuneros.de
+ */
 class Access {
-    public $otp = false;
-    public $api_key = '';
-    public $project_id = 1;
-    public $server = 'https://www.cuneros.de/api/';
-    public $user = "";
-    public $amount = 0;
-    public $response = false;
-    public $error_id = 0;
-    public $error_string = "";
-    public $server_ip = "";
-
-	public function __construct($otp, $user, $api_key, $project_id) {
-		$this->otp = $otp;
-		$this->user = $user;
-		$this->api_key = $api_key;
-		$this->project_id = $project_id;
-	}
-
-	protected function gen_hash($otp, $src, $dst, $api_key, $action, $amount) {
-		$str = sprintf("%s%s%s%s%s%s", $otp, $src, $dst, $api_key, $action, $amount);
-		$hash = hash("sha512", $str);
-		return $hash;
-	}
-
-	protected function build_params($src, $dst, $action, $amount, $subject, $own_id) {
-
-	        $hash = $this->gen_hash($this->otp, $src, $dst, $this->api_key, $action, $amount);
-
-	        return array(
-	            'hash' => $hash,
-	            'src' => $src,
-	            'dst' => $dst,
-	            'api_key' => $this->api_key,
-        	    'action' => $action,
-        	    'amount' => $amount,
-        	    'subject' => $subject,
-        	    'project' => $this->project_id,
-        	    'otp' => $this->otp,
-                    'external_id' => $own_id
-        	);
-	}
-
-	protected function server_request($server, $action_url, $data) {
-		$string = $server . $action_url . "?" . $data;
-		$fp  = file_get_contents($string);
-		return json_decode($fp);
-	}
-
-
-	protected function request($src, $dst, $action, $amount, $subject, $own_id) {
-		$action_url = 'access/';
-		$dat = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $own_id));
-		$data = $this->server_request($this->server, $action_url, $dat);
-		$this->error_id = $data->error_code;
-		$this->error_string = $data->error_message;
-		$this->server_ip = $data->ip;
-		return $data;
-	}
-
-	public function info() {
-		return $this->request($this->user, 0, "info", 0, "", "");
-	}
-
-	public function send($amount, $subject, $own_id=False) {
-		return $this->request(0, $this->user, "send", $amount, $subject, $own_id);
-	}
-
-	public function get($amount, $subject, $own_id=False) {
-		return $this->request($this->user, 0, "get", $amount, $subject, $own_id);
-	}
-
-	public function get_error_number() {
-		return $this->error_id;
-	}
-	public function get_error_message() {
-		return $this->error_string;
-	}
-	public function get_status() {
-		return (0 == $this->error_id);
-	}
-
-	public function check_transaction($own_id) {
-		return $this->request(0, 0, "check_transaction", 0, '', $own_id);
-	}
-	public function send_safe($amount, $own_id) {
-		return $this->request(0, 0, "safe", $amount, "", $own_id);
-	}
-
-
-	public function get_blocked_users() {
-		return 	$this->server_request($this->server, "blocks/", "");
-	}
-
-	public function get_blocked_user($username) {
-		$str = "blocks/" . $username . "/";
-		return 	$this->server_request($this->server, $str, "");
-	}
-
-
+    protected $otp = false;
+    protected $api_key = '';
+    protected $project_id = 1;
+    protected $server = 'https://www.cuneros.de/api/';
+    protected $user = "";
+    protected $amount = 0;
+    protected $response = false;
+    protected $error_id = 0;
+    protected $error_string = "";
+    protected $server_ip = "";
+    /**
+     * Constructor of Access class
+     *
+     * Will create an instance of the api access class with user and otp as well as api key and project id
+     *
+     * @param string $otp the users otp, generated from the individual otp link (might be optional)
+     * @param string $user the username from cuneros.de
+     * @param string $api_key the secret api key from the project settings page
+     * @param int $project_id the project id from the project overview page
+     *
+     * @return Access
+     */
+    public function __construct($otp, $user, $api_key, $project_id) {
+        $this->otp        = $otp;
+        $this->user       = $user;
+        $this->api_key    = $api_key;
+        $this->project_id = $project_id;
+    }
+    /**
+     * Information about the user (otp needed)
+     *
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "id": User Id
+     *    "registration_date": ISO format registration date
+     *    "verified": true/false if user is verified
+     *  }
+     *  "error_code": error code as per list on cuneros
+     *  "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     *  }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function info() {
+        return $this->request($this->user, 0, "info", 0, "", "");
+    }
+    /**
+     * Send cuneros to user (otp optional)
+     *
+     * @param int $amount amount to send
+     * @param string $subject Subject to appear in transaction list
+     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     *
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "date": ISO format of date
+     *    "from": from name
+     *    "timestamp": unix timestamp
+     *    "amount": cuneros amount
+     *    "subject": transaction subject
+     *    "transaction": transaction id
+     *  }
+     *  "error_code": error code as per list on cuneros
+     *  "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     *  }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function send($amount, $subject, $own_id = False) {
+        return $this->request(0, $this->user, "send", $amount, $subject, $own_id);
+    }
+    /**
+     * Get cuneros from user (otp needed)
+     *
+     * @param int $amount amount to get
+     * @param string $subject Subject to appear in transaction list
+     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "date": ISO format of date
+     *    "from": from name
+     *    "timestamp": unix timestamp
+     *    "amount": cuneros amount
+     *    "subject": transaction subject
+     *    "transaction": transaction id
+     *  }
+     *  "error_code": error code as per list on cuneros
+     *  "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     *  }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function get($amount, $subject, $own_id = False) {
+        return $this->request($this->user, 0, "get", $amount, $subject, $own_id);
+    }
+    /**
+     * get error number of last api call
+     *
+     * @return int error_id
+     */
+    public function get_error_number() {
+        return $this->error_id;
+    }
+    /**
+     * get error message of last api call
+     *
+     * @return string error_string
+     */
+    public function get_error_message() {
+        return $this->error_string;
+    }
+    /**
+     * get success of last api call
+     *
+     * @return bool (true if successful
+     */
+    public function get_status() {
+        return (0 == $this->error_id);
+    }
+    /**
+     * check transaction (otp optional)
+     *
+     * @param int $own_id Site transaction id to be checked
+     *
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "user": username 
+     *    "direction": send/get
+     *    "date": ISO format of date
+     *    "from": from name
+     *    "timestamp": unix timestamp
+     *    "amount": cuneros amount
+     *    "subject": transaction subject
+     *    "transaction": transaction id
+     *  }
+     *  "error_code": error code as per list on cuneros
+     *  "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     *  }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function check_transaction($own_id) {
+        return $this->request(0, 0, "check_transaction", 0, '', $own_id);
+    }
+    /**
+     * Send cuneros to API Ssafe (otp optional)
+     *
+     * @param int $amount amount to be stored
+     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     *
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "date": ISO format of date
+     *    "from": from name
+     *    "to": "safe"
+     *    "timestamp": unix timestamp
+     *    "amount": cuneros amount
+     *    "transaction": transaction id
+     *  }
+     * "error_code": error code as per list on cuneros
+     * "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     * }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function send_safe($amount, $own_id) {
+        return $this->request(0, 0, "safe", $amount, "", $own_id);
+    }
+    /**
+     * Check API Account status (no otp needed)
+     *
+     * @return stdClass: 
+     * {"transaction_data": {
+     *   "api_end_time": end of payment term for api account (ISO format)
+     *   "api_credit_points": Credit points
+     *   "api_package": {
+     *      "price": Price in Credit Points
+     *      "description": description of api package
+     *      "requests_per_day": requests per day in this api package
+     *      "name": api package name
+     *      "max_balance": maximum allowed account balance
+     *   },
+     *   "api_time_left": time left in days
+     *  }
+     * "error_code": error code as per list on cuneros
+     * "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     * }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function get_api_info() {
+        return $this->request(0, 0, "api_info", 0, "", 0);
+    }
+    /**
+     * Fetches all not-active users on cuneros.de
+     *
+     * @return stdClass: 
+     * {"blocked_users": [{
+     *   "user_id": user id
+     *   "username": user name
+     *   "registration_date": registration date in iso format
+     *   "reasons": array of times blocked.
+     *  }]
+     */
+    public function get_blocked_users() {
+        return $this->server_request($this->server, "blocks/", "");
+    }
+    /**
+     * Checks if user is blocked on cuneros.de
+     *
+     * @param string $username username to be checked
+     *
+     * @return stdClass: 
+     * {"data": "not blocked" or {
+     *   "user_id": user id
+     *   "username": user name
+     *   "registration_date": registration date in iso format
+     *   "reasons": array of times blocked.
+     *  }
+     */
+    public function get_blocked_user($username) {
+        $str = "blocks/" . $username . "/";
+        return $this->server_request($this->server, $str, "");
+    }
+    protected function gen_hash($otp, $src, $dst, $api_key, $action, $amount) {
+        $str  = sprintf("%s%s%s%s%s%s", $otp, $src, $dst, $api_key, $action, $amount);
+        $hash = hash("sha512", $str);
+        return $hash;
+    }
+    protected function build_params($src, $dst, $action, $amount, $subject, $own_id) {
+        $hash = $this->gen_hash($this->otp, $src, $dst, $this->api_key, $action, $amount);
+        return array(
+            'hash' => $hash,
+            'src' => $src,
+            'dst' => $dst,
+            //	            'api_key' => $this->api_key, // api key is no longer mandatory, as it is included in the hash.
+            'action' => $action,
+            'amount' => $amount,
+            'subject' => $subject,
+            'project' => $this->project_id,
+            'otp' => $this->otp,
+            'external_id' => $own_id
+        );
+    }
+    protected function server_request($server, $action_url, $data) {
+        $string = $server . $action_url . "?" . $data;
+        $fp     = file_get_contents($string);
+        return json_decode($fp);
+    }
+    protected function request($src, $dst, $action, $amount, $subject, $own_id) {
+        $action_url         = 'access/';
+        $dat                = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $own_id));
+        $data               = $this->server_request($this->server, $action_url, $dat);
+        $this->error_id     = $data->error_code;
+        $this->error_string = $data->error_message;
+        $this->server_ip    = $data->ip;
+        return $data;
+    }
 }
-
