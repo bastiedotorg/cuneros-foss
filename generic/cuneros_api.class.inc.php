@@ -277,8 +277,22 @@ class Access {
     }
     protected function server_request($server, $action_url, $data) {
         $string = $server . $action_url . "?" . $data;
-        $fp     = file_get_contents($string);
-        return json_decode($fp);
+        $ch     = curl_init();
+        
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // return response as a string
+        curl_setopt($ch, CURLOPT_URL, $string); // the URL
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, TRUE); // verify SSL info
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE); // make sure, connection is new
+        
+        // Get JSON
+        $result  = curl_exec($ch);
+        $content = FALSE;
+        // Basic error handling
+        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
+            $content = json_decode($result, FALSE);
+        }
+        curl_close($ch);
+        return $content;
     }
     protected function request($src, $dst, $action, $amount, $subject, $own_id) {
         $action_url         = 'access/';
