@@ -118,9 +118,9 @@ class Trans {
 	*/
 
 	function Check() {
-		if ($this->access->error_id == 0) return "0";
-		else if ($this->access->error_id == 720) return $this->access->error_string . ' Detektierte IP: '.$this->access->server_ip;
-		else return $this->access->error_string;
+		if ($this->access->get_status()) return "0";
+		else if ($this->access->get_error_number() == 720) return $this->access->get_error_message() . ' Detektierte IP: '.$this->access->server_ip;
+		else return $this->access->get_error_message();
 	}
 
 	function getAbuse() {

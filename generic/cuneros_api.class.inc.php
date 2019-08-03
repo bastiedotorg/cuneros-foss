@@ -126,6 +126,15 @@ class Access {
         return $this->error_id;
     }
     /**
+    * get detected server ip
+     *
+     * @return string server_ip
+     */
+    public function get_server_ip() {
+        return $this->server_ip;
+    }
+
+    /**
      * get error message of last api call
      *
      * @return string error_string
@@ -307,7 +316,7 @@ class Access {
         $this->server_ip    = $data->ip;
 	if($random_number != $data->random_number) {
 		$this->error_id = 999999;
-		$this->error_string = "Random number does not match!";
+		$this->error_string = "Random number does not match! ".$random_number . " ". $data->random_number;
 	}
         return $data;
     }
