@@ -260,7 +260,7 @@ class Access {
         $hash = hash("sha512", $str);
         return $hash;
     }
-    protected function build_params($src, $dst, $action, $amount, $subject, $own_id) {
+    protected function build_params($src, $dst, $action, $amount, $subject, $own_id, $random_number) {
         $hash = $this->gen_hash($this->otp, $src, $dst, $this->api_key, $action, $amount);
         return array(
             'hash' => $hash,
@@ -272,21 +272,43 @@ class Access {
             'subject' => $subject,
             'project' => $this->project_id,
             'otp' => $this->otp,
-            'external_id' => $own_id
+            'external_id' => $own_id,
+            'random' => $random_number
         );
     }
     protected function server_request($server, $action_url, $data) {
+
         $string = $server . $action_url . "?" . $data;
-        $fp     = file_get_contents($string);
-        return json_decode($fp);
+        $ch     = curl_init();
+
+        
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // return response as a string
+        curl_setopt($ch, CURLOPT_URL, $string); // the URL
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, TRUE); // verify SSL info
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE); // make sure, connection is new
+        
+        // Get JSON
+        $result  = curl_exec($ch);
+        $content = FALSE;
+        // Basic error handling
+        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
+            $content = json_decode($result, FALSE);
+        }
+        curl_close($ch);
+        return $content;
     }
     protected function request($src, $dst, $action, $amount, $subject, $own_id) {
         $action_url         = 'access/';
-        $dat                = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $own_id));
+        $random_number = mt_rand(1000,9999);
+        $dat                = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $own_id, $random_number));
         $data               = $this->server_request($this->server, $action_url, $dat);
         $this->error_id     = $data->error_code;
         $this->error_string = $data->error_message;
         $this->server_ip    = $data->ip;
+	if($random_number != $data->random_number) {
+		$this->error_id = 999999;
+		$this->error_string = "Random number does not match!";
+	}
         return $data;
     }
 }
