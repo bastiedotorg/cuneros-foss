@@ -9,7 +9,7 @@
  * @author     Bastian Lüttig / bastie dot space
  * @copyright  2019 Cuneros.de
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @version    1.1
+ * @version    1.1.1
  * @link       https://www.cuneros.de
  */
 class Access {
@@ -67,7 +67,7 @@ class Access {
      *
      * @param int $amount amount to send
      * @param string $subject Subject to appear in transaction list
-     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     * @param bool|string|int $external_id Site transaction id for better filtering purpose (will be stored on cuneros)
      *
      * @return stdClass: 
      * {"transaction_data": {
@@ -87,15 +87,15 @@ class Access {
      * "ip": detected ip of your server
      * }
      */
-    public function send($amount, $subject, $own_id = False) {
-        return $this->request(0, $this->user, "send", $amount, $subject, $own_id);
+    public function send($amount, $subject, $external_id = False) {
+        return $this->request(0, $this->user, "send", $amount, $subject, $external_id);
     }
     /**
      * Get cuneros from user (otp needed)
      *
      * @param int $amount amount to get
      * @param string $subject Subject to appear in transaction list
-     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     * @param bool|string|int $external_id Site transaction id for better filtering purpose (will be stored on cuneros)
      * @return stdClass: 
      * {"transaction_data": {
      *    "date": ISO format of date
@@ -114,8 +114,8 @@ class Access {
      * "ip": detected ip of your server
      * }
      */
-    public function get($amount, $subject, $own_id = False) {
-        return $this->request($this->user, 0, "get", $amount, $subject, $own_id);
+    public function get($amount, $subject, $external_id = False) {
+        return $this->request($this->user, 0, "get", $amount, $subject, $external_id);
     }
     /**
      * get error number of last api call
@@ -153,7 +153,7 @@ class Access {
     /**
      * check transaction (otp optional)
      *
-     * @param int $own_id Site transaction id to be checked
+     * @param bool|string|int $external_id Site transaction id to be checked
      *
      * @return stdClass: 
      * {"transaction_data": {
@@ -175,14 +175,14 @@ class Access {
      * "ip": detected ip of your server
      * }
      */
-    public function check_transaction($own_id) {
-        return $this->request(0, 0, "check_transaction", 0, '', $own_id);
+    public function check_transaction($external_id) {
+        return $this->request(0, 0, "check_transaction", 0, '', $external_id);
     }
     /**
      * Send cuneros to API Ssafe (otp optional)
      *
      * @param int $amount amount to be stored
-     * @param int $own_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     * @param bool|string|int $external_id Site transaction id for better filtering purpose (will be stored on cuneros)
      *
      * @return stdClass: 
      * {"transaction_data": {
@@ -202,8 +202,8 @@ class Access {
      * "ip": detected ip of your server
      * }
      */
-    public function send_safe($amount, $own_id) {
-        return $this->request(0, 0, "safe", $amount, "", $own_id);
+    public function send_safe($amount, $external_id) {
+        return $this->request(0, 0, "safe", $amount, "", $external_id);
     }
     /**
      * Check API Account status (no otp needed)
@@ -269,7 +269,7 @@ class Access {
         $hash = hash("sha512", $str);
         return $hash;
     }
-    protected function build_params($src, $dst, $action, $amount, $subject, $own_id, $random_number) {
+    protected function build_params($src, $dst, $action, $amount, $subject, $external_id, $random_number) {
         $hash = $this->gen_hash($this->otp, $src, $dst, $this->api_key, $action, $amount);
         return array(
             'hash' => $hash,
@@ -281,7 +281,7 @@ class Access {
             'subject' => $subject,
             'project' => $this->project_id,
             'otp' => $this->otp,
-            'external_id' => $own_id,
+            'external_id' => $external_id,
             'random' => $random_number
         );
     }
@@ -306,10 +306,10 @@ class Access {
         curl_close($ch);
         return $content;
     }
-    protected function request($src, $dst, $action, $amount, $subject, $own_id) {
+    protected function request($src, $dst, $action, $amount, $subject, $external_id) {
         $action_url         = 'access/';
         $random_number = mt_rand(1000,9999);
-        $dat                = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $own_id, $random_number));
+        $dat                = http_build_query($this->build_params($src, $dst, $action, $amount, $subject, $external_id, $random_number));
         $data               = $this->server_request($this->server, $action_url, $dat);
         $this->error_id     = $data->error_code;
         $this->error_string = $data->error_message;
