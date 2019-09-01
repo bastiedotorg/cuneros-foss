@@ -9,7 +9,7 @@
  * @author     Bastian Lüttig / bastie dot space
  * @copyright  2019 Cuneros.de
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @version    1.1.1
+ * @version    1.1.2
  * @link       https://www.cuneros.de
  */
 class Access {
@@ -314,6 +314,10 @@ class Access {
         $this->error_id     = $data->error_code;
         $this->error_string = $data->error_message;
         $this->server_ip    = $data->ip;
+	if($data == FALSE) {
+		$this->error_id = 999998;
+		$this->error_string = "Sever not reachable.";
+	}
 	if($random_number != $data->random_number) {
 		$this->error_id = 999999;
 		$this->error_string = "Random number does not match! ".$random_number . " ". $data->random_number;
