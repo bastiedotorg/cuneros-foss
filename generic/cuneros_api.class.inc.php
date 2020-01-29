@@ -9,7 +9,7 @@
  * @author     Bastian Lüttig / bastie dot space
  * @copyright  2020 Cuneros.de
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @version    1.2
+ * @version    1.2.1
  * @link       https://www.cuneros.de
  *
  * Changelog
@@ -234,7 +234,7 @@ class Access {
      * }
      */
     public function send_project($target_project, $amount, $subject, $external_id=False) {
-        return $this->request($target_project, 0, "send_project", $amount, $subject, $external_id);
+        return $this->request(0, $target_project, "send_project", $amount, $subject, $external_id);
     }
 
     /**
