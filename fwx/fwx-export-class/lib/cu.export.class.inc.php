@@ -15,7 +15,7 @@ class Trans {
 	public $version = "0.1"; //constant
 	protected $config; // array
 	protected $access; // Access Instance
-
+	protected $data;
 	/** Constructor Trans (
 		array $config (Configuration from DB)
 	 );
@@ -30,10 +30,10 @@ class Trans {
 	}
 
 	public function api_stats_update() {
-		transupdate($this->access->data->api_data->account_balance,
-			$this->access->data->api_data->safe_balance,
-			$this->access->data->api_data->requests_left,
-			$this->access->data->api_data->requests_left
+		transupdate($this->data->api_data->account_balance,
+			$this->data->api_data->safe_balance,
+			$this->data->api_data->requests_left,
+			$this->data->api_data->requests_left
 		);
 	}
 	/** method Get (
@@ -47,7 +47,7 @@ class Trans {
 
 	function Get($usr,$usrpwd,$amount,$subject) {
 		$this->init_api($usr, $usrpwd);
-		$data = $this->access->get($amount, $subject);
+		$this->data = $this->access->get($amount, $subject);
 
 		$check[0] = $this->Check();
 		$check[1] = $this->access->data->api_data->account_balance;
@@ -66,7 +66,7 @@ class Trans {
 	
 	function Send($usr,$usrpwd,$amount,$subject) {
 		$this->init_api($usr, $usrpwd);
-		$data = $this->access->send($amount, $subject);
+		$this->data = $this->access->send($amount, $subject);
 
 		$check[0] = $this->Check();
 		$check[1] = $this->access->data->api_data->account_balance;
@@ -85,7 +85,7 @@ class Trans {
 
 	function Validate($usr,$usrpwd) {
 		$this->init_api($usr, $usrpwd);
-		$data = $this->access->info();
+		$this->data = $this->access->info();
 
 		$check[0] = $this->Check();
 		$check[1] = $this->access->data->api_data->account_balance;
@@ -103,7 +103,7 @@ class Trans {
 	
 	function Secure($amount, $id = 0) {
 		$this->init_api('', '');
-		$data = $this->access->send_safe($amount, $id);
+		$this->data = $this->access->send_safe($amount, $id);
 
 		$check[0] = $this->Check();
 		$check[1] = $this->access->data->api_data->account_balance;
