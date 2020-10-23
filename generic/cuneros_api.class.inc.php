@@ -9,7 +9,7 @@
  * @author     Bastian Lüttig / bastie dot space
  * @copyright  2020 Cuneros.de
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @version    1.2.1
+ * @version    1.2.2
  * @link       https://www.cuneros.de
  *
  * Changelog
@@ -40,7 +40,7 @@ class Access {
      */
     public function __construct($otp, $user, $api_key, $project_id) {
         $this->otp        = $otp;
-        $this->user       = $user;
+        $this->user       = trim($user);
         $this->api_key    = $api_key;
         $this->project_id = $project_id;
     }
