@@ -7,10 +7,13 @@
  * @category   API Connection
  * @package    Cuneros.Api
  * @author     Bastian Lüttig / bastie dot space
- * @copyright  2019 Cuneros.de
+ * @copyright  2020 Cuneros.de
  * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @version    1.1.2
+ * @version    1.2.2
  * @link       https://www.cuneros.de
+ *
+ * Changelog
+ * 1.2: added send_project method for new cuneros api call
  */
 class Access {
     protected $otp = false;
@@ -37,7 +40,7 @@ class Access {
      */
     public function __construct($otp, $user, $api_key, $project_id) {
         $this->otp        = $otp;
-        $this->user       = $user;
+        $this->user       = trim($user);
         $this->api_key    = $api_key;
         $this->project_id = $project_id;
     }
@@ -205,6 +208,35 @@ class Access {
     public function send_safe($amount, $external_id) {
         return $this->request(0, 0, "safe", $amount, "", $external_id);
     }
+    /**
+     * Send cuneros to other project account (no otp given)
+     *
+     * @param int $target_project target project id
+     * @param int $amount amount to send
+     * @param string $subject Subject to appear in transaction list
+     * @param bool|string|int $external_id Site transaction id for better filtering purpose (will be stored on cuneros)
+     * @return stdClass: 
+     * {"transaction_data": {
+     *    "date": ISO format of date
+     *    "from": from name
+     *    "timestamp": unix timestamp
+     *    "amount": cuneros amount
+     *    "subject": transaction subject
+     *    "transaction": transaction id
+     *  }
+     *  "error_code": error code as per list on cuneros
+     *  "api_data": {
+     *    "requests_left": api requests left today
+     *    "safe_balance": api account safe balance
+     *    "account_balance": api account balance
+     *  }
+     * "ip": detected ip of your server
+     * }
+     */
+    public function send_project($target_project, $amount, $subject, $external_id=False) {
+        return $this->request(0, $target_project, "send_project", $amount, $subject, $external_id);
+    }
+
     /**
      * Check API Account status (no otp needed)
      *
